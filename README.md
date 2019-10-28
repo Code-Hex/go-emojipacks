@@ -6,6 +6,10 @@
 
 ## Install
 
+### binary
+
+You can get binary from [releases](https://github.com/Code-Hex/go-emojipacks/releases)
+
 ### go get
 
 ```bash
