@@ -1,0 +1,36 @@
+builds:
+  - id: emojipacks
+    main: ./cmd/emojipacks/main.go
+    binary: emojipacks
+    env:
+      - CGO_ENABLED=0
+    ldflags: -s -w
+    flags: -trimpath
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - 386
+      - amd64
+archive:
+  name_template: 'emojipacks_{{ .Tag }}_{{ .Os }}_{{ .Arch }}'
+  replacements:
+    darwin: Darwin
+    linux: Linux
+    windows: Windows
+    386: i386
+    amd64: x86_64
+  format_overrides:
+  - goos: windows
+    format: zip
+checksum:
+  name_template: 'emojipacks_checksums.txt'
+changelog:
+  sort: asc
+  filters:
+    exclude:
+    - '^docs:'
+    - '^test:'
+    - Merge pull request
+    - Merge branch
