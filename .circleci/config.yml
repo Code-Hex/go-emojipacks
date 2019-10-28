@@ -1,0 +1,98 @@
+version: 2
+
+variables:
+  context: &context org-context
+  working_directory: &working_directory /go/src/github.com/Code-Hex/go-emojipacks
+common_steps:
+  restore_cache_modules: &restore_cache_modules
+    keys:
+      - go-mod-v1-{{ checksum "go.sum" }}
+
+jobs:
+  mod:
+    docker:
+      - image: circleci/golang:1.13
+        environment:
+          GOFLAGS: -mod=vendor
+    working_directory: *working_directory
+    steps:
+      - checkout
+      - restore_cache: *restore_cache_modules
+      - run:
+          name: Install dependencies
+          command: |
+            go mod vendor
+      
+      - save_cache:
+          key: go-mod-v1-{{ checksum "go.sum" }}
+          paths:
+            - "./vendor"
+
+  build:
+    docker:
+      - image: circleci/golang:1.13
+        environment:
+          GOFLAGS: -mod=vendor
+    working_directory: *working_directory
+    steps:
+      - checkout
+      - restore_cache: *restore_cache_modules
+      - run:
+          name: Build
+          command: make build
+
+  test:
+    docker:
+      - image: circleci/golang:1.13
+        environment:
+          GOFLAGS: -mod=vendor
+    working_directory: *working_directory
+    steps:
+      - checkout
+      - restore_cache: *restore_cache_modules
+      - run:
+          name: Build
+          command: go test ./...
+    
+  release:
+    docker:
+      - image: circleci/golang:1.13
+        environment:
+          GO111MODULE: "on"
+    steps:
+      - checkout
+      - run: curl -sL https://git.io/goreleaser | bash
+
+workflows:
+  version: 2
+  test-workflow:
+    jobs:
+      - mod:
+          context: *context
+          filters:
+            tags:
+              only: /.*/
+      - build:
+          context: *context
+          requires:
+            - mod
+          filters:
+            tags:
+              only: /.*/
+      - test:
+          context: *context
+          requires:
+            - mod
+          filters:
+            tags:
+              only: /.*/
+      - release:
+          context: *context
+          requires:
+            - build
+            - test
+          filters:
+            tags:
+              only: /v[0-9]+\.[0-9]+\.[0-9]+/
+            branches:
+              ignore: /.*/

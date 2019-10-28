@@ -4,18 +4,23 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 
 	loginslack "github.com/Code-Hex/login-slack"
-	"github.com/Songmu/prompter"
+	p "github.com/Songmu/prompter"
 	"github.com/logrusorgru/aurora"
+	"github.com/mattn/go-colorable"
+)
+
+var (
+	stdout = colorable.NewColorableStdout()
+	stderr = colorable.NewColorableStderr()
 )
 
 func Run(args []string) int {
 	progName := args[0]
 	if err := run(args); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to run %s: %v\n", progName, err)
+		fmt.Fprintf(stderr, "failed to run %s: %v\n", progName, err)
 		return 1
 	}
 	return 0
@@ -55,6 +60,23 @@ func parse(args []string) (*options, error) {
 	}
 	return o, nil
 }
+
+type inputter interface {
+	Prompt(message, defaultAnswer string) string
+	Password(message string) string
+}
+
+type defaultPrompter struct{}
+
+func (defaultPrompter) Prompt(message, defaultAnswer string) string {
+	return p.Prompt(message, defaultAnswer)
+}
+
+func (defaultPrompter) Password(message string) string {
+	return p.Password(message)
+}
+
+var prompter inputter = defaultPrompter{}
 
 func (o *options) getSubDomain() string {
 	if o.subdomain != "" {
@@ -123,13 +145,13 @@ func (u *uploader) runUploadEmojiPacks(packs []*EmojiPacks) error {
 }
 
 func (u *uploader) runUploadEmojiPack(pack *EmojiPacks) error {
-	fmt.Println(aurora.BrightCyan("start upload: " + pack.Title))
+	fmt.Fprintln(stdout, aurora.BrightCyan("start upload: "+pack.Title))
 	for _, emoji := range pack.Emojis {
 		err := u.pipeDownloadAndUpload(emoji.Src, emoji.Name)
 		if err != nil {
 			return err
 		}
-		fmt.Println(aurora.BrightGreen("complete: " + emoji.Name))
+		fmt.Fprintln(stdout, aurora.BrightGreen("complete: "+emoji.Name))
 	}
 	return nil
 }
