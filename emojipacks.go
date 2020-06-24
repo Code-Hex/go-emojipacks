@@ -43,6 +43,7 @@ type options struct {
 	subdomain string
 	email     string
 	password  string
+	token     string
 	yamlfiles sliceFlags
 }
 
@@ -53,6 +54,7 @@ func parse(args []string) (*options, error) {
 	flg.StringVar(&o.subdomain, "s", "", "subdomain (workspace) of your slack")
 	flg.StringVar(&o.email, "e", "", "email of your account")
 	flg.StringVar(&o.password, "p", "", "password of your account")
+	flg.StringVar(&o.token, "t", "", "xoxs type api token of your account")
 	flg.Var(&o.yamlfiles, "y", "batch uploading of multiple yaml files")
 
 	if err := flg.Parse(args[1:]); err != nil {
@@ -99,6 +101,13 @@ func (o *options) getPassword() string {
 	return prompter.Password("Password")
 }
 
+func (o *options) getToken() string {
+	if o.token != "" {
+		return o.token
+	}
+	return prompter.Prompt("xoxs API Token (empty is ok)", "")
+}
+
 func (o *options) getYAMLFiles() []string {
 	if len(o.yamlfiles) > 0 {
 		return o.yamlfiles
@@ -112,16 +121,21 @@ func run(args []string) error {
 		return err
 	}
 	subdomain := o.getSubDomain()
-	email := o.getEmail()
-	password := o.getPassword()
+	accessToken := o.getToken()
+
+	if accessToken == "" || !(strings.HasPrefix(accessToken, "xoxs") || strings.HasPrefix(accessToken, "xoxc")) {
+		fmt.Println("not found valid api token")
+		email := o.getEmail()
+		password := o.getPassword()
+		accessToken, err = loginslack.Login(email, password, subdomain)
+		if err != nil {
+			return err
+		}
+	}
+
 	yamlFiles := o.getYAMLFiles()
 
 	packs, err := unmarshalYAMLs(yamlFiles)
-	if err != nil {
-		return err
-	}
-
-	accessToken, err := loginslack.Login(email, password, subdomain)
 	if err != nil {
 		return err
 	}
