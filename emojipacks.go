@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	loginslack "github.com/Code-Hex/login-slack"
+	loginslack "github.com/Code-Hex/go-emojipacks/internal/slack"
 	p "github.com/Songmu/prompter"
 	"github.com/logrusorgru/aurora"
 	"github.com/mattn/go-colorable"
